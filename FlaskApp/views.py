@@ -48,13 +48,15 @@ def render_login_page():
     if form.is_submitted():
         print("username entered:", form.username.data)
         print("password entered:", form.password.data)
+
     if form.validate_on_submit():
         user = WebUser.query.filter_by(username=form.username.data).first()
         if user:
             # TODO: You may want to verify if password is correct
             login_user(user)
+            print("where are you now: 3", form.username.data)
             return redirect("/privileged-page")
-    return render_template("index.html",form=form)
+    return render_template("index.html" , form=form)
 
 
 @view.route("/privileged-page", methods=["GET"])
