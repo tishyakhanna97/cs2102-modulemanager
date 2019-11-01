@@ -36,6 +36,8 @@ def render_registration_page():
                 .format(username, preferred_name, password)
             db.session.execute(query)
             db.session.commit()
+            #Commit is to update the database, so used for SQL
+            #queries where you actually change the DB
             return "You have successfully signed up!"
     return render_template("registration-simple.html", form=form)
 
@@ -52,7 +54,7 @@ def render_login_page():
             # TODO: You may want to verify if password is correct
             login_user(user)
             return redirect("/privileged-page")
-    return render_template("index.html", form=form)
+    return render_template("index.html",form=form)
 
 
 @view.route("/privileged-page", methods=["GET"])
