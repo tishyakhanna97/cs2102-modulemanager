@@ -54,7 +54,8 @@ CREATE TABLE Majoring (
 CREATE TABLE Modules (
 	modcode varchar(100) PRIMARY KEY,
 	modname varchar(100) NOT NULL,
-	fname varchar(100) DEFAULT 'NUS' NOT NULL REFERENCES Faculties ON DELETE SET DEFAULT -- faculty owns a module
+	fname varchar(100) DEFAULT 'NUS' NOT NULL REFERENCES Faculties ON DELETE SET DEFAULT -- faculty owns a module,
+	workload int NOT NULL
 );
 
 CREATE TABLE Lectures (
