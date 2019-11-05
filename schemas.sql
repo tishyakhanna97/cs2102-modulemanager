@@ -80,14 +80,15 @@ CREATE TABLE Preclusions(
 ); -- trigger here to add preclusion in opposite direction
 
 CREATE TABLE Bids(
-	uid varchar(100) NOT NULL REFERENCES Students ON DELETE CASCADE ON UPDATE CASCADE,
+	uid varchar(100) NOT NULL REFERENCES Students,
+	uid_req varchar(100) NOT NULL REFERENCES Students,
 	modcode varchar(100) NOT NULL,
 	lnum int NOT NULL,
 	bid_time timestamp with time zone,
 	status boolean DEFAULT True,
 	remark varchar(100) DEFAULT 'Successful bid!',
 	FOREIGN KEY (lnum,modcode) REFERENCES Lectures ON DELETE CASCADE ON UPDATE CASCADE,
-	PRIMARY KEY(uid,modcode,lnum,bid_time)
+	PRIMARY KEY(uid, uid_req, modcode,lnum,bid_time)
 ); -- Bids
 
 CREATE TABLE Gets(
