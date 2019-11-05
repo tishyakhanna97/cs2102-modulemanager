@@ -48,3 +48,39 @@ EXCEPTION
 		ROLLBACK;
 END;
 $csu$ LANGUAGE plpgsql;
+
+				       
+-- Trigger to ensure that preclusions are added in pairs.				       
+CREATE OR REPLACE FUNCTION dual_preclusion()
+RETURNS TRIGGER AS
+$a_p$
+BEGIN
+	IF TG_OP = 'DELETE' 
+	THEN 
+		IF EXISTS (SELECT 1
+				FROM Preclusions P 
+				WHERE P.modcode = old.precluded AND P.precluded = old.modcode
+		       )
+		THEN	   
+			DELETE FROM Preclusions PP
+			WHERE PP.modcode = old.precluded AND PP.precluded = old.modcode;
+			RETURN NULL;
+		ELSE
+			RETURN NULL;
+		END IF;
+	ELSEIF NOT EXISTS (SELECT 1
+						FROM Preclusions P1
+						WHERE P1.modcode = new.precluded AND P1.precluded = new.modcode
+					   ) 
+	THEN	
+		INSERT INTO Preclusions VALUES(new.precluded, new.modcode);
+		RETURN NULL;
+	ELSE 
+		RETURN NULL;
+	END IF;
+END;
+$a_p$ LANGUAGE plpgsql;
+CREATE TRIGGER add_preclusion
+AFTER INSERT OR DELETE ON Preclusions
+FOR EACH ROW
+EXECUTE PROCEDURE dual_preclusion();
