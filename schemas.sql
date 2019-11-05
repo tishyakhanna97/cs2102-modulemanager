@@ -63,10 +63,20 @@ CREATE TABLE Lectures (
 	modcode varchar(100) NOT NULL REFERENCES Modules ON DELETE CASCADE, -- module covers the slot
 	deadline timestamp with time zone NOT NULL,
 	quota int DEFAULT 100 NOT NULL,
-	t_start time,
-	t_end time CHECK (t_end > t_start),
 	PRIMARY KEY(lnum,modcode)
 );
+
+-- Weak entity Slots created to represent the time slots for each lecture slot.
+CREATE TYPE mood AS ENUM ('monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday');
+CREATE TABLE Slots (
+	lnum integer,
+	modcode varchar(100),
+	d mood,
+	t_start time,
+	t_end time,
+	PRIMARY KEY(lnum, modcode, d), FOREIGN KEY (lnum, modcode) REFERENCES Lectures, 
+	CHECK (t_start > t_end)
+)
 
 CREATE TABLE Prerequisites(
 	modcode varchar(100) NOT NULL REFERENCES Modules ON DELETE CASCADE,
