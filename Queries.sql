@@ -84,3 +84,23 @@ CREATE TRIGGER add_preclusion
 AFTER INSERT OR DELETE ON Preclusions
 FOR EACH ROW
 EXECUTE PROCEDURE dual_preclusion();
+
+-- compute the workload for a student      do not count audit modules      return error if student doesn't exist 
+-- params: id of a student  return: int workload   
+CREATE OR REPLACE FUNCTION compute_workload(id varchar(50)) 
+RETURNS int AS
+$c_w$
+BEGIN
+	IF NOT EXISTS (SELECT 1 FROM Students S WHERE S.uid = id)
+	THEN
+		RAISE EXCEPTION 'Error: this student does not exist';
+	END IF;
+	RETURN COALESCE((SELECT SUM(workload)
+		  	FROM modules M 
+			WHERE EXISTS (SELECT 1
+						  FROM Gets G
+			              WHERE G.uid = id AND M.modcode = G.modcode AND NOT G.is_audit  
+						 )
+			), 0);
+END;
+$c_w$ LANGUAGE plpgsql;
