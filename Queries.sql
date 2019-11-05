@@ -37,13 +37,13 @@ BEGIN
 	THEN INSERT INTO Exchanges VALUES (uid, country);
 	END IF;
 EXCEPTION
-	WHEN SQLSTATE '23502' THEN
+	WHEN SQLSTATE '23502' THEN -- pkey error
 		RAISE EXCEPTION 'Error: some of the required fields are missing';
 		ROLLBACK;
-	WHEN SQLSTATE '23503' THEN
+	WHEN SQLSTATE '23503' THEN  -- fkey error
 		RAISE EXCEPTION 'Error: an inaccurate major name has been entered';
 		ROLLBACK;
-	WHEN SQLSTATE '23505' THEN
+	WHEN SQLSTATE '23505' THEN  -- 
 		RAISE EXCEPTION 'Error: account with this ID has existed';
 		ROLLBACK;
 END;
@@ -69,9 +69,9 @@ BEGIN
 			RETURN NULL;
 		END IF;
 	ELSEIF NOT EXISTS (SELECT 1
-						FROM Preclusions P1
-						WHERE P1.modcode = new.precluded AND P1.precluded = new.modcode
-					   ) 
+			   FROM Preclusions P1
+			   WHERE P1.modcode = new.precluded AND P1.precluded = new.modcode
+			  ) 
 	THEN	
 		INSERT INTO Preclusions VALUES(new.precluded, new.modcode);
 		RETURN NULL;
