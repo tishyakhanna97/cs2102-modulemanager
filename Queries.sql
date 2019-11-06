@@ -18,7 +18,7 @@ EXECUTE PROCEDURE hash_proc();
 
 
 
--- Use this to ensure that every student has at least one major
+-- Use this to ensure that every student has at least one major/add students into the db
 CREATE OR REPLACE PROCEDURE create_student_user(
 	uid varchar(100) DEFAULT NULL, 
 	pw varchar(100) DEFAULT NULL, 
@@ -104,3 +104,6 @@ BEGIN
 			), 0);
 END;
 $c_w$ LANGUAGE plpgsql;
+
+
+

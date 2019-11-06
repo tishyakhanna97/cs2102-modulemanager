@@ -1,0 +1,21 @@
+{% extends 'layout.html' %}
+{% block head %}
+<h1></h1>
+{% endblock head %}
+
+{% block content %}
+<!-- Header -->
+<div class="custom-main-cover-background">
+<header class="w3-container jb-main-cover-content jb-header w3-center w3-padding-276">
+  <div class="">
+  {% if current_user.is_authenticated %}
+  <h1 class="w3-margin w3-jumbo">Welcome!</h1>
+  <h3>Module Registration</h3>
+  </button>
+  {% else %}
+  <h1 class="w3-margin w3-jumbo ">Module Registration</h1>
+    <h1 class="jb-disable-link"><a href="{{ url_for('main.login')}}">Login</a></h1>
+  {% endif %}
+</div>
+</header>
+{% endblock content %}
