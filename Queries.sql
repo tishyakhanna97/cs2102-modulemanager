@@ -134,3 +134,44 @@ CREATE TRIGGER detect_cycle
 AFTER INSERT ON Prerequisites
 FOR EACH ROW
 EXECUTE PROCEDURE remove_cyclic_prereq()
+				       
+-- DFS to find all the modules to be completed for student (id) to qualify for the module (wantt)				       
+CREATE OR REPLACE FUNCTION DFS_fulfill(id varchar(100), wantt varchar(100), need varchar(100)[])
+RETURNS varchar(100)[] AS
+$DFS$
+DECLARE
+	r record;
+	mc varchar(100);
+	
+BEGIN
+	-- The hierarchy is a DAG so there is no need to flag visited node
+	FOR r IN (SELECT * FROM Prerequisites PP where PP.want = wantt) LOOP
+		mc := r.need;
+		IF mc = ANY(DFS_fulfill(id, mc, need)) AND mc != ALL(need)
+		THEN
+			need := need || mc;
+		END IF;
+	END LOOP;
+	IF NOT EXISTS (SELECT 1
+				   FROM Completions C
+				   WHERE C.modcode = wantt and C.uid = id
+				  )
+	THEN
+		need := need || wantt;
+	END IF;
+	RETURN need;
+END; 
+$DFS$ LANGUAGE plpgsql
+
+-- The function that we use on the interface
+CREATE OR REPLACE FUNCTION findNeededModules(id varchar(100), modcode varchar(100))
+RETURNS text AS
+$n$
+DECLARE
+	arr varchar(100)[];
+BEGIN
+	arr := DFS_fulfill(id, modcode, '{}');
+	arr := arr[0:array_length(arr, 1)-1];
+	RETURN array_to_string(arr,', ');
+END;
+$n$ LANGUAGE plpgsql;
