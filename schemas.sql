@@ -13,14 +13,14 @@ CREATE TABLE Admins (
 CREATE TABLE Students (
 	uid varchar(100) PRIMARY KEY,
 	name varchar(100) NOT NULL,
-	cap numeric DEFAULT 0 ,
-	enroll date NOT NULL,
+	--Remove cap, it's hard to calculate. cap numeric DEFAULT 0 ,
+	enroll DATE NOT NULL,
 	FOREIGN KEY (uid) REFERENCES Users ON DELETE CASCADE ON UPDATE CASCADE
 );
 
 CREATE TABLE Exchanges (
 	uid varchar(100) PRIMARY KEY,
-	home_country varchar(100) ,
+	home_country varchar(100) NOT NULL,
 	FOREIGN KEY (uid) REFERENCES Students ON DELETE CASCADE ON UPDATE CASCADE
 );
 
@@ -54,7 +54,7 @@ CREATE TABLE Majoring (
 CREATE TABLE Modules (
 	modcode varchar(100) PRIMARY KEY,
 	modname varchar(100) NOT NULL,
-	fname varchar(100) DEFAULT 'NUS' NOT NULL REFERENCES Faculties ON DELETE SET DEFAULT -- faculty owns a module,
+	fname varchar(100) DEFAULT 'NUS' NOT NULL REFERENCES Faculties ON DELETE SET DEFAULT, -- faculty owns a module,
 	workload int NOT NULL
 );
 
@@ -68,15 +68,17 @@ CREATE TABLE Lectures (
 
 -- Weak entity Slots created to represent the time slots for each lecture slot.
 CREATE TYPE mood AS ENUM ('monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday');
+
 CREATE TABLE Slots (
 	lnum integer,
 	modcode varchar(100),
 	d mood,
 	t_start time,
 	t_end time,
-	PRIMARY KEY(lnum, modcode, d), FOREIGN KEY (lnum, modcode) REFERENCES Lectures, 
+	FOREIGN KEY (lnum, modcode) REFERENCES Lectures,
+	PRIMARY KEY(lnum, modcode, d),
 	CHECK (t_start < t_end)
-)
+);
 
 /* This function checks, among the modules that the given student (identified by id) is taking, which clashes with the given lecture slot
 (identify by l, code ~ lnum, modcode).
@@ -133,7 +135,7 @@ CREATE TABLE Bids(
 ); -- Bids
 
 CREATE TABLE Gets(
-	uid varchar(100) NOT NULL NOT NULL REFERENCES Students ON DELETE CASCADE ON UPDATE CASCADE,
+	uid varchar(100) NOT NULL REFERENCES Students ON DELETE CASCADE ON UPDATE CASCADE,
 	modcode varchar(100) NOT NULL,
 	lnum int NOT NULL,
 	is_audit boolean DEFAULT false,
@@ -146,3 +148,5 @@ CREATE TABLE Completions(
 	modcode varchar(100) NOT NULL REFERENCES Modules ON UPDATE CASCADE,
 	PRIMARY KEY(uid, modcode)
 );
+
+INSERT INTO Users VALUES ('sample','sample');

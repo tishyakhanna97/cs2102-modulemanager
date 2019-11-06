@@ -1,0 +1,53 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="w3-row-padding w3-padding-64 w3-container">
+    <div class="w3-content">
+        <div class="w3-center w3-padding-64">
+            <h1>Login Using User ID</h1>
+            <div class="content-section">
+                <form method="POST" action="">
+                    {{ form.hidden_tag() }}
+                    <fieldset class="form-grop">
+                        <div class="form-grop">
+                            {{ form.userName.label(class="form-control-label") }}<br>
+                            {% if form.userName.errors %}
+                            {{ form.userName(class="form-control form-control-lg is-invalid") }}
+                            <div class="invalid-feedback">
+                                {% for error in form.userName.errors %}
+                                <span> {{ error }} </span>
+                                {% endfor %}
+                            </div>
+                            {% else %}
+                            <div class="jb-element-width-50 jb-margin-center">
+                                {{ form.userName(class="form-control form-control-lg") }}
+                            </div>
+                            {% endif %}
+                        </div><br>
+                        <div class="form-grop">
+                            {{ form.password.label(class="form-control-label") }}<br>
+                            {% if form.password.errors %}
+                            {{ form.password(class="form-control form-control-lg is-invalid") }}
+                            <div class="invalid-feedback">
+                                {% for error in form.password.errors %}
+                                <span> {{ error }}</span>
+                                {% endfor %}
+                            </div>
+                            {% else %}
+                            <div class="jb-element-width-50 jb-margin-center">
+                                {{ form.password(class="form-control form-control-lg") }}
+                            </div>
+                            {% endif %}
+                        </div><br>
+                    </fieldset>
+                    <div class="">
+                        <div class="">
+                        {{ form.submit(class="jb-button")}}
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <p class="w3-text-grey"></p>
+        </div>
+    </div>
+</div>
+{% endblock content%}
