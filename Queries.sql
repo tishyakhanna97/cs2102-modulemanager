@@ -106,4 +106,31 @@ END;
 $c_w$ LANGUAGE plpgsql;
 
 
-
+				      				       
+-- This trigger is fired for addition that results in a cycle and will delete the triggering entry with detailed warning provided				       
+CREATE OR REPLACE FUNCTION remove_cyclic_prereq()
+RETURNS TRIGGER AS
+$rcp$
+BEGIN
+	IF EXISTS 
+	  (WITH RECURSIVE Preq(want, need) AS (
+		SELECT want, need FROM Prerequisites
+		UNION
+		SELECT P.want, Pr.need
+		FROM Preq P, Prerequisites Pr
+		WHERE P.need = Pr.want
+	       )
+	        SELECT 1 FROM Preq P  
+	 		 WHERE P.need = P.want 
+	   )
+	THEN
+		DELETE FROM Prerequisites P WHERE P.want = new.want AND P.need = new.need; 
+		RAISE NOTICE 'Error: adding % as a prerequisite for % results in a cyclic dependency', new.want, new.need;
+	RETURN NULL;
+	END IF;
+END;
+$rcp$ LANGUAGE plpgsql;
+CREATE TRIGGER detect_cycle
+AFTER INSERT ON Prerequisites
+FOR EACH ROW
+EXECUTE PROCEDURE remove_cyclic_prereq()
