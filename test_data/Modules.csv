@@ -1,0 +1,22 @@
+modcode,modname,fname,workload
+MA1521,Calculus for Computing,Faculty of Science,4
+MA2104,Multivariable Calculus,Faculty of Science,4
+MA1101R,Linear Algebra I,Faculty of Science,4
+ST2131,Probability and Statistics,Faculty of Science,4
+CS1010E,Programming Methodology II,School of Computing,4
+CS1010X,Programming Methodology I,School of Computing,5
+CS1101S,Programming Methodology I,School of Computing,5
+CS2102,Introduction to Database,School of Computing,4
+CS2102A,Introduction to Database,School of Computing,4
+CS2030,Programming Methodology II,School of Computing,4
+CS2040,Data Strutures and Algorithms,School of Computing,4
+CS2103,Software Engineering,School of Computing,6
+CS2103T,Object-oriented Programming and Software Engineering,School of Computing,6
+CS3243,Introduction to Artificial Intelligence,School of Computing,4
+CS2100,Computer Organisation,School of Computing,4
+CS2105,Introduction to Computer Network,School of Computing,4
+CS3223,Database Systems Implementation,School of Computing,5
+CS3244,Machine Learning,School of Computing,5
+CS2107,Introduction to Computer Security,School of Computing,4
+PL1101E,Introduction to Psychology,Faculty of Arts and Social Sciences,4
+EC1301,Principles of Economics,Faculty of Arts and Social Sciences,4
