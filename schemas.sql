@@ -1,9 +1,10 @@
-CREATE TABLE Users (
+CREATE TABLE WebUsers (
 	uid varchar(100) PRIMARY KEY,
 	password varchar(100) NOT NULL,
 	is_super boolean DEFAULT False NOT NULL
 );
-CREATE TABLE Admins (
+
+CREATE TABLE WebAdmins (
 	uid varchar(100) PRIMARY KEY,
 	name varchar(100),
 	contact varchar(100), -- Can display relevant people in-charge
@@ -39,7 +40,7 @@ CREATE TABLE Majors (
 );
 --Has minor
 CREATE TABLE Minoring (
-	uid varchar(100) NOT NULL REFERENCES Students ON DELETE CASCADE ON UPDATE CASCADE,
+	  varchar(100) NOT NULL REFERENCES Students ON DELETE CASCADE ON UPDATE CASCADE,
 	min_name varchar(100) NOT NULL REFERENCES Minors ON DELETE CASCADE ON UPDATE CASCADE,
 	PRIMARY KEY (uid,min_name)
 );
@@ -54,7 +55,8 @@ CREATE TABLE Majoring (
 CREATE TABLE Modules (
 	modcode varchar(100) PRIMARY KEY,
 	modname varchar(100) NOT NULL,
-	fname varchar(100) DEFAULT 'NUS' NOT NULL REFERENCES Faculties ON DELETE SET DEFAULT, -- faculty owns a module,
+	description text, 
+	fname varchar(100) DEFAULT 'NUS' NOT NULL REFERENCES Faculties ON DELETE SET DEFAULT, -- faculty owns a module,	
 	workload int NOT NULL
 );
 
