@@ -82,6 +82,9 @@ CREATE TABLE Slots (
 	CHECK (t_start < t_end)
 );
 
+-- make sure that mood is defined
+
+
 CREATE TABLE Prerequisites(
 	modcode varchar(100) NOT NULL REFERENCES Modules ON DELETE CASCADE,
 	prereq varchar(100) NOT NULL REFERENCES Modules ON DELETE CASCADE CHECK(prereq <> modcode),
@@ -110,7 +113,6 @@ CREATE TABLE Gets(
 	uid varchar(100) NOT NULL REFERENCES Students ON DELETE CASCADE ON UPDATE CASCADE,
 	modcode varchar(100) NOT NULL,
 	lnum int NOT NULL,
-	is_audit boolean DEFAULT false,
 	FOREIGN KEY (lnum,modcode) REFERENCES Lectures ON DELETE CASCADE ON UPDATE CASCADE,
 	PRIMARY KEY(uid,modcode,lnum)
 );

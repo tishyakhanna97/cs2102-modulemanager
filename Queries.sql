@@ -99,7 +99,7 @@ BEGIN
 		  	FROM modules M 
 			WHERE EXISTS (SELECT 1
 						  FROM Gets G
-			              WHERE G.uid = id AND M.modcode = G.modcode AND NOT G.is_audit  
+			              WHERE G.uid = id AND M.modcode = G.modcode   
 						 )
 			), 0);
 END;
@@ -128,7 +128,7 @@ BEGIN
 			     -- Check if this module is indeed taken by the student											
 			     EXISTS (SELECT 1 
 					     FROM Gets G
-		 			     WHERE G.uid = id AND G.modcode = L2.modcode AND G.lnum = L2.lnum AND NOT G.is_audit
+		 			     WHERE G.uid = id AND G.modcode = L2.modcode AND G.lnum = L2.lnum 
 		 		        )
 		       )
 		);		 
