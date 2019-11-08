@@ -3,14 +3,16 @@ from flask import Blueprint, request, render_template, url_for,redirect
 from modreg.main.forms import *
 from flask import Blueprint, render_template, url_for, redirect, request, flash
 from flask_login import login_user, current_user, logout_user, login_required
-from modreg.models import WebUser
+from modreg.models import WebUsers
+from modreg import db
 
 main = Blueprint('main', __name__)
 
 @main.route("/")
 @main.route("/home")
 def home():
-    return render_template('main/home.html')
+    user = db.engine.execute("SELECT * FROM webuser")
+    return render_template('main/home.html', user=user)
     
 @main.route("/")
 @main.route("/faqpage")
@@ -21,7 +23,7 @@ def faq():
 def login():
     form = LoginForm()
     if form.validate_on_submit():
-        attemptedWebUser = WebUser.query.filter_by(uid=form.userName.data).first()
+        attemptedWebUser = WebUsers.query.filter_by(uid=form.userName.data).first()
         #if user and bcrypt.check_password_hash(user.password, form.password.data):
         if attemptedWebUser and form.password.data == attemptedWebUser.password:
             login_user(attemptedWebUser)

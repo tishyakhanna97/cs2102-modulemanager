@@ -99,11 +99,110 @@ BEGIN
 		  	FROM modules M 
 			WHERE EXISTS (SELECT 1
 						  FROM Gets G
-			              WHERE G.uid = id AND M.modcode = G.modcode AND NOT G.is_audit  
+			              WHERE G.uid = id AND M.modcode = G.modcode   
 						 )
 			), 0);
 END;
 $c_w$ LANGUAGE plpgsql;
 
+				       
+/* This function checks, among the modules that the given student (identified by id) is taking, which clashes with the given lecture slot
+(identify by l, code ~ lnum, modcode).
+   We assume that at this point the id is guaranteed to refer to a student
+*/
+CREATE OR REPLACE FUNCTION time_clash(id varchar(100), l integer, code varchar(100)) 
+RETURNS SETOF varchar(100) AS
+$t_c$
+BEGIN
+	RETURN QUERY  -- Find a module M that
+		(SELECT M.modcode 
+		 FROM Modules M
+		 WHERE  
+		 		-- Clashes with the current lecture slot
+		 		
+		 EXISTS (SELECT 1 -- The first condition will check all the module that clashes with the lecture slot.  
+		      	 FROM Slots L1 JOIN Slots L2 ON ((L1.modcode, L1.lnum) <> (L2.modcode, L2.lnum) AND (L1.modcode, L1.lnum) = (code, l) AND L2.modcode = M.modcode)
+				                       -- Test for time overlapping   
+				 WHERE L1.d = L2.d AND ((L1.t_end > L2.t_start AND L2.t_start > L1.t_start) OR (L2.t_end > L1.t_start AND L1.t_start > L2.t_start))
+				 AND --  And is taken by id
+			     -- Check if this module is indeed taken by the student											
+			     EXISTS (SELECT 1 
+					     FROM Gets G
+		 			     WHERE G.uid = id AND G.modcode = L2.modcode AND G.lnum = L2.lnum 
+		 		        )
+		       )
+		);		 
+	RETURN;
+END
+$t_c$ LANGUAGE plpgsql;
+				       
+				       
+				      				       
+-- This trigger is fired for addition that results in a cycle and will delete the triggering entry with detailed warning provided				       
+CREATE OR REPLACE FUNCTION remove_cyclic_prereq()
+RETURNS TRIGGER AS
+$rcp$
+BEGIN
+	IF EXISTS 
+	  (WITH RECURSIVE Preq(want, need) AS (
+		SELECT want, need FROM Prerequisites
+		UNION
+		SELECT P.want, Pr.need
+		FROM Preq P, Prerequisites Pr
+		WHERE P.need = Pr.want
+	       )
+	        SELECT 1 FROM Preq P  
+	 		 WHERE P.need = P.want 
+	   )
+	THEN
+		DELETE FROM Prerequisites P WHERE P.want = new.want AND P.need = new.need; 
+		RAISE NOTICE 'Error: adding % as a prerequisite for % results in a cyclic dependency', new.want, new.need;
+	RETURN NULL;
+	END IF;
+END;
+$rcp$ LANGUAGE plpgsql;
+CREATE TRIGGER detect_cycle
+AFTER INSERT ON Prerequisites
+FOR EACH ROW
+EXECUTE PROCEDURE remove_cyclic_prereq()
+				       
+-- DFS to find all the modules to be completed for student (id) to qualify for the module (wantt)				       
+CREATE OR REPLACE FUNCTION DFS_fulfill(id varchar(100), wantt varchar(100), need varchar(100)[])
+RETURNS varchar(100)[] AS
+$DFS$
+DECLARE
+	r record;
+	mc varchar(100);
+	
+BEGIN
+	-- The hierarchy is a DAG so there is no need to flag visited node
+	FOR r IN (SELECT * FROM Prerequisites PP where PP.want = wantt) LOOP
+		mc := r.need;
+		IF mc = ANY(DFS_fulfill(id, mc, need)) AND mc != ALL(need)
+		THEN
+			need := need || mc;
+		END IF;
+	END LOOP;
+	IF NOT EXISTS (SELECT 1
+				   FROM Completions C
+				   WHERE C.modcode = wantt and C.uid = id
+				  )
+	THEN
+		need := need || wantt;
+	END IF;
+	RETURN need;
+END; 
+$DFS$ LANGUAGE plpgsql
 
-
+-- The function that we use on the interface
+CREATE OR REPLACE FUNCTION findNeededModules(id varchar(100), modcode varchar(100))
+RETURNS text AS
+$n$
+DECLARE
+	arr varchar(100)[];
+BEGIN
+	arr := DFS_fulfill(id, modcode, '{}');
+	arr := arr[0:array_length(arr, 1)-1];
+	RETURN array_to_string(arr,', ');
+END;
+$n$ LANGUAGE plpgsql;

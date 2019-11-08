@@ -1,9 +1,10 @@
-CREATE TABLE Users (
+CREATE TABLE WebUsers (
 	uid varchar(100) PRIMARY KEY,
 	password varchar(100) NOT NULL,
 	is_super boolean DEFAULT False NOT NULL
 );
-CREATE TABLE Admins (
+
+CREATE TABLE WebAdmins (
 	uid varchar(100) PRIMARY KEY,
 	name varchar(100),
 	contact varchar(100), -- Can display relevant people in-charge
@@ -39,7 +40,7 @@ CREATE TABLE Majors (
 );
 --Has minor
 CREATE TABLE Minoring (
-	uid varchar(100) NOT NULL REFERENCES Students ON DELETE CASCADE ON UPDATE CASCADE,
+	  varchar(100) NOT NULL REFERENCES Students ON DELETE CASCADE ON UPDATE CASCADE,
 	min_name varchar(100) NOT NULL REFERENCES Minors ON DELETE CASCADE ON UPDATE CASCADE,
 	PRIMARY KEY (uid,min_name)
 );
@@ -54,7 +55,8 @@ CREATE TABLE Majoring (
 CREATE TABLE Modules (
 	modcode varchar(100) PRIMARY KEY,
 	modname varchar(100) NOT NULL,
-	fname varchar(100) DEFAULT 'NUS' NOT NULL REFERENCES Faculties ON DELETE SET DEFAULT, -- faculty owns a module,
+	description text, 
+	fname varchar(100) DEFAULT 'NUS' NOT NULL REFERENCES Faculties ON DELETE SET DEFAULT, -- faculty owns a module,	
 	workload int NOT NULL
 );
 
@@ -80,35 +82,8 @@ CREATE TABLE Slots (
 	CHECK (t_start < t_end)
 );
 
-/* This function checks, among the modules that the given student (identified by id) is taking, which clashes with the given lecture slot
-(identify by l, code ~ lnum, modcode).
-   We assume that at this point the id is guaranteed to refer to a student
-*/
-CREATE OR REPLACE FUNCTION time_clash(id varchar(100), l integer, code varchar(100)) 
-RETURNS SETOF varchar(100) AS
-$t_c$
-BEGIN
-	RETURN QUERY  -- Find a module M that
-		(SELECT M.modcode 
-		 FROM Modules M
-		 WHERE  
-		 		-- Clashes with the current lecture slot
-		 		
-		 EXISTS (SELECT 1 -- The first condition will check all the module that clashes with the lecture slot.  
-		      	 FROM Slots L1 JOIN Slots L2 ON ((L1.modcode, L1.lnum) <> (L2.modcode, L2.lnum) AND (L1.modcode, L1.lnum) = (code, l) AND L2.modcode = M.modcode)
-				                       -- Test for time overlapping   
-				 WHERE L1.d = L2.d AND ((L1.t_end > L2.t_start AND L2.t_start > L1.t_start) OR (L2.t_end > L1.t_start AND L1.t_start > L2.t_start))
-				 AND --  And is taken by id
-			     -- Check if this module is indeed taken by the student											
-			     EXISTS (SELECT 1 
-					     FROM Gets G
-		 			     WHERE G.uid = id AND G.modcode = L2.modcode AND G.lnum = L2.lnum AND NOT G.is_audit
-		 		        )
-		       )
-		);		 
-	RETURN;
-END
-$t_c$ LANGUAGE plpgsql;
+-- make sure that mood is defined
+
 
 CREATE TABLE Prerequisites(
 	modcode varchar(100) NOT NULL REFERENCES Modules ON DELETE CASCADE,
@@ -138,7 +113,6 @@ CREATE TABLE Gets(
 	uid varchar(100) NOT NULL REFERENCES Students ON DELETE CASCADE ON UPDATE CASCADE,
 	modcode varchar(100) NOT NULL,
 	lnum int NOT NULL,
-	is_audit boolean DEFAULT false,
 	FOREIGN KEY (lnum,modcode) REFERENCES Lectures ON DELETE CASCADE ON UPDATE CASCADE,
 	PRIMARY KEY(uid,modcode,lnum)
 );
