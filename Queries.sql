@@ -268,8 +268,7 @@ BEGIN
 END;
 $n$ LANGUAGE plpgsql;
 		    
-		    
---Compute the year of the student assuming there is one in the DB		    
+-- Compute the year of the student which equals to the ceil(return_value)		    
 CREATE OR REPLACE FUNCTION compute_year(id varchar(100))
 RETURNS numeric AS
 $cy$
@@ -281,29 +280,17 @@ BEGIN
 END;
 $cy$ LANGUAGE plpgsql;
 
--- The huge trigger
+
+-- Trigger that procs before the addition of a bid request
 CREATE OR REPLACE FUNCTION handle_bid()
 RETURNS TRIGGER AS 
 $hb$
 BEGIN
-	--if admin made the bid then all checks are bypassed
-	IF EXISTS (SELECT 1
-			   FROM Admins A
-			   WHERE A.uid = new.uid_req 
-			  )
-	THEN
-		INSERT INTO Gets VALUES (new.uid, new.modcode, new.lnum, false);
-		RETURN (new.uid, new.uid_req, new.modcode, new.lnum, new.bid_time, True , 'Module added by an admin.'::varchar(100));	
-	ELSIF (new.uid_req <> new.uid) -- A student can only bid for herself
-	THEN
-		RAISE EXCEPTION 'Error: mismatching IDs';
-		RETURN NULL;
-		
 	-- Check if the student had completed the module before or a preclusion
-	ELSIF EXISTS (SELECT 1 
-				  FROM Completions C 
-				  WHERE C.uid  = new.uid AND C.modcode = new.modcode 
-				 )
+	IF EXISTS (SELECT 1 
+			   FROM Completions C 
+			   WHERE C.uid  = new.uid AND C.modcode = new.modcode 
+			  )
 		  OR
 		  EXISTS (SELECT 1
 				  FROM Completions C
@@ -315,6 +302,41 @@ BEGIN
 				 )
 	THEN 
 		RETURN (new.uid, new.uid_req, new.modcode, new.lnum, new.bid_time, False , 'Module/preclusion completed before'::varchar(100));
+	-- If currently subscribing to the mod or a preclusion then don't allow
+	ELSIF EXISTS (SELECT 1 
+				  FROM Gets C 
+				  WHERE C.uid  = new.uid AND C.modcode = new.modcode 
+				 )
+		  OR
+		  EXISTS (SELECT 1
+				  FROM Gets C
+				  WHERE C.uid = new.uid 
+				  AND EXISTS (SELECT 1 
+							  FROM Preclusions P
+							  WHERE P.modcode = new.modcode AND C.modcode = P.precluded 
+							 )
+				 )
+	THEN
+		RETURN (new.uid, new.uid_req, new.modcode, new.lnum, new.bid_time, False , 'Module/preclusion currently subscribed to'::varchar(100));
+	--If admin made the bid then all checks below are bypassed
+	ELSIF EXISTS (SELECT 1
+			   FROM Admins A
+			   WHERE A.uid = new.uid_req 
+			  )
+	THEN
+		RETURN (new.uid, new.uid_req, new.modcode, new.lnum, new.bid_time, True , 'Module added by an admin.'::varchar(100));	
+	ELSIF (new.uid_req <> new.uid) -- A student can only bid for herself
+	THEN
+		RAISE EXCEPTION 'Error: mismatching IDs';
+		RETURN NULL;
+	--If the student is an exchange student then add him/ her
+	ELSIF EXISTS (SELECT 1 
+			   FROM Exchanges E
+			   WHERE E.uid = new.uid
+			  )
+	THEN 
+		RETURN (new.uid, new.uid_req, new.modcode, new.lnum, new.bid_time, True , 'Module successfully added'::varchar(100));
+	
 	-- Check if the student has all prerequisites completed
 	ELSIF EXISTS (SELECT 1 
 				  FROM Prerequisites P
@@ -342,8 +364,27 @@ BEGIN
 			   WHERE L.lnum = new.lnum AND L.modcode = new.modcode
 			  )
 	THEN 
-		RETURN (new.uid, new.uid_req, new.modcode, new.lnum, new.bid_time, False , 'Quota exceeded'::varchar(100));
+		/*If the mod belongs to one the student's major faculties
+		  	and the student is year 3 or above (i.e compute_year >= 2)
+			and the student takes less than 24MCs
+		 then she can take it
+		*/
+		IF EXISTS (SELECT 1
+				   FROM Modules M
+				   WHERE M.modcode = new.modcode 
+				   AND EXISTS (SELECT 1
+							   FROM (Majoring NATURAL JOIN Majors) AS MM
+ 							   WHERE MM.uid = new.uid AND MM.fname = M.fname
+				   )
 	
+			) AND (compute_year(new.uid) > 2) AND (compute_workload(new.uid) < 23)
+		
+		THEN
+			RETURN (new.uid, new.uid_req, new.modcode, new.lnum, new.bid_time, True , 'Module succesfully added'::varchar(100));	
+		
+		ELSE
+			RETURN (new.uid, new.uid_req, new.modcode, new.lnum, new.bid_time, False , 'Quota exceeded'::varchar(100));
+		END IF;
 	-- Then whether they have maximum workload
 	ELSIF (SELECT SS.total
 			FROM (SELECT S.uid, COALESCE(SUM(GM.workload),0) AS total
@@ -371,3 +412,26 @@ CREATE TRIGGER add_bid
 BEFORE INSERT ON Bids
 FOR EACH ROW
 EXECUTE PROCEDURE handle_bid();
+
+--Trigger that procs after the bid request and handle addition to Gets table															       
+CREATE OR REPLACE FUNCTION proc_bid()
+RETURNS TRIGGER AS
+$pb$
+BEGIN
+	IF (new.status) THEN
+		INSERT INTO Gets VALUES (new.uid, new.modcode, new.lnum, false);
+	ELSE 
+		RAISE EXCEPTION '%', new.remark;
+	END IF;
+	RETURN NULL;
+	EXCEPTION
+		WHEN SQLSTATE '23503' THEN
+			RAISE EXCEPTION 'Error: The lecture slot does not exist ';
+		WHEN SQLSTATE '23505' THEN
+			RAISE EXCEPTION 'Error: This slot is already allocated to the student';
+END;
+$pb$ LANGUAGE plpgsql;
+CREATE TRIGGER bid_proc
+AFTER INSERT ON Bids
+FOR EACH ROW 
+EXECUTE PROCEDURE proc_bid();
