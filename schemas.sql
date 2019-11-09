@@ -99,7 +99,7 @@ CREATE TABLE Preclusions(
 
 CREATE TABLE Bids(
 	uid varchar(100) NOT NULL REFERENCES Students,
-	uid_req varchar(100) NOT NULL REFERENCES Students,
+	uid_req varchar(100) NOT NULL REFERENCES Users,
 	modcode varchar(100) NOT NULL,
 	lnum int NOT NULL,
 	bid_time timestamp with time zone,
