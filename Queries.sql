@@ -1,3 +1,64 @@
+--- SQL Query ---
+
+--- Create/Update/Delete Lecture ---
+--- Create Lecture --- Module must exist before lecture can be created
+--- Query does nothing if Lectures modcode doesnt exist in module
+DO
+$do$
+BEGIN
+IF EXISTS (SELECT FROM modules where modcode = modcode) THEN
+   INSERT INTO lectures values (lnum,modcode,deadline,quota);
+ELSE 
+END IF;
+END
+$do$
+
+--- Create Lecture SLOT --- Check lecture modcode and lnum must exists
+DO
+$do$
+BEGIN
+IF EXISTS (SELECT FROM lectures l where l.modcode = modcode AND l.lnum = lnum) THEN
+   INSERT INTO slots values (lnum,modcode,t_start,t_end,day);
+ELSE 
+END IF;
+END
+$do$
+
+--- Update Lecture --- Don't allow update
+--- Update Lecture SLOT --- Don't allow update
+
+--- Delete Lecture --- (Base on ModuleCode, LectureNo)
+DO
+$do$
+BEGIN
+IF EXISTS (SELECT FROM lectures l where l.modcode = modcode AND l.lnum = lnum) THEN
+   DELETE FROM lectures where modcode = modcode AND lnum = lnum;
+ELSE 
+END IF;
+END
+$do$
+
+--- Delete Lecture SLOT --- (Base on ModuleCode, LectureNo, Day)
+DO
+$do$
+BEGIN
+IF EXISTS (SELECT FROM slots t where t.modcode = modcode AND t.lnum = lnum AND t.day = day) THEN
+   DELETE FROM slots where modcode = modcode AND lnum = lnum AND day = day;
+ELSE 
+END IF;
+END
+$do$
+
+--- Admin list all lecture base on search result (module name)
+SELECT * FROM lectures where modcode = modcode
+
+--- Admin list all lecture slot base either search result (module name)
+SELECT * from slots where modcode = modcode or lnum = lnum or day = day
+
+
+
+--- Functions, Triggers and Procedure ----
+
 -- Query to ensure that data is encrypted before being stored in the record
 CREATE EXTENSION pgcrypto;
 CREATE OR REPLACE FUNCTION hash_proc()
