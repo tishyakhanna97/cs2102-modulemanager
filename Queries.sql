@@ -206,3 +206,107 @@ BEGIN
 	RETURN array_to_string(arr,', ');
 END;
 $n$ LANGUAGE plpgsql;
+		    
+		    
+--Compute the year of the student assuming there is one in the DB		    
+CREATE OR REPLACE FUNCTION compute_year(id varchar(100))
+RETURNS numeric AS
+$cy$
+BEGIN
+	RETURN ROUND(EXTRACT(epoch from(now() - (SELECT enroll
+				   			  FROM Students S
+							  WHERE S.uid = id
+				    ))/31557600)::numeric, 2);
+END;
+$cy$ LANGUAGE plpgsql;
+
+-- The huge trigger
+CREATE OR REPLACE FUNCTION handle_bid()
+RETURNS TRIGGER AS 
+$hb$
+BEGIN
+	--if admin made the bid then all checks are bypassed
+	IF EXISTS (SELECT 1
+			   FROM Admins A
+			   WHERE A.uid = new.uid_req 
+			  )
+	THEN
+		INSERT INTO Gets VALUES (new.uid, new.modcode, new.lnum, false);
+		RETURN (new.uid, new.uid_req, new.modcode, new.lnum, new.bid_time, True , 'Module added by an admin.'::varchar(100));	
+	ELSIF (new.uid_req <> new.uid) -- A student can only bid for herself
+	THEN
+		RAISE EXCEPTION 'Error: mismatching IDs';
+		RETURN NULL;
+		
+	-- Check if the student had completed the module before or a preclusion
+	ELSIF EXISTS (SELECT 1 
+				  FROM Completions C 
+				  WHERE C.uid  = new.uid AND C.modcode = new.modcode 
+				 )
+		  OR
+		  EXISTS (SELECT 1
+				  FROM Completions C
+				  WHERE C.uid = new.uid 
+				  AND EXISTS (SELECT 1 
+							  FROM Preclusions P
+							  WHERE P.modcode = new.modcode AND C.modcode = P.precluded 
+							 )
+				 )
+	THEN 
+		RETURN (new.uid, new.uid_req, new.modcode, new.lnum, new.bid_time, False , 'Module/preclusion completed before'::varchar(100));
+	-- Check if the student has all prerequisites completed
+	ELSIF EXISTS (SELECT 1 
+				  FROM Prerequisites P
+				  WHERE P.want = new.modcode 
+				  AND NOT EXISTS (SELECT 1
+				  				  FROM Completions C
+								  WHERE C.modcode = P.need AND C.uid = new.uid 
+				  				 )
+	  			 )
+	THEN 
+		RETURN (new.uid, new.uid_req, new.modcode, new.lnum, new.bid_time, False , 'Uncompleted prerequisites'::varchar(100));
+	-- Check if the student made request before deadline	
+	ELSIF new.bid_time > (SELECT deadline 
+						  FROM Lectures L
+						  WHERE L.lnum = new.lnum AND L.modcode = new.modcode)
+	THEN 
+		RETURN (new.uid, new.uid_req, new.modcode, new.lnum, new.bid_time, False , 'Request made after deadline'::varchar(100));
+	
+	-- Check for quota
+	ELSIF (SELECT COUNT(DISTINCT G.uid) 
+		   FROM Gets G 
+		   WHERE G.lnum = new.lnum AND G.modcode = new.modcode AND G.uid <> new.uid
+		  ) >= (SELECT L.quota 
+			   FROM Lectures L
+			   WHERE L.lnum = new.lnum AND L.modcode = new.modcode
+			  )
+	THEN 
+		RETURN (new.uid, new.uid_req, new.modcode, new.lnum, new.bid_time, False , 'Quota exceeded'::varchar(100));
+	
+	-- Then whether they have maximum workload
+	ELSIF (SELECT SS.total
+			FROM (SELECT S.uid, COALESCE(SUM(GM.workload),0) AS total
+	  		      FROM Students S 
+      			  LEFT JOIN (Gets G NATURAL JOIN Modules M) AS GM 
+	  			  ON GM.uid = S.uid 
+                  GROUP BY S.uid) AS SS
+            WHERE SS.uid = new.uid) - compute_year(new.uid) > 23
+	THEN
+		RETURN (new.uid, new.uid_req, new.modcode, new.lnum, new.bid_time, False , 'Maximum workload exceeded'::varchar(100));
+	 
+	ELSE
+		RETURN (new.uid, new.uid_req, new.modcode, new.lnum, new.bid_time, True , 'Module successfully added'::varchar(100));
+	
+	END IF;
+	
+	EXCEPTION
+		WHEN SQLSTATE '23503' THEN
+			RAISE EXCEPTION 'Error: The lecture slot does not exist ';
+		WHEN SQLSTATE '23505' THEN
+			RAISE EXCEPTION 'Error: This slot is already allocated to the student';
+END;
+$hb$ LANGUAGE plpgsql;
+CREATE TRIGGER add_bid
+BEFORE INSERT ON Bids
+FOR EACH ROW
+EXECUTE PROCEDURE handle_bid();
