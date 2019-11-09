@@ -86,8 +86,8 @@ CREATE TABLE Slots (
 
 
 CREATE TABLE Prerequisites(
-	modcode varchar(100) NOT NULL REFERENCES Modules ON DELETE CASCADE,
-	prereq varchar(100) NOT NULL REFERENCES Modules ON DELETE CASCADE CHECK(prereq <> modcode),
+	want varchar(100) NOT NULL REFERENCES Modules ON DELETE CASCADE,
+	need varchar(100) NOT NULL REFERENCES Modules ON DELETE CASCADE CHECK(prereq <> modcode),
 	PRIMARY KEY(modcode,prereq)
 );
 
@@ -99,7 +99,7 @@ CREATE TABLE Preclusions(
 
 CREATE TABLE Bids(
 	uid varchar(100) NOT NULL REFERENCES Students,
-	uid_req varchar(100) NOT NULL REFERENCES Students,
+	uid_req varchar(100) NOT NULL REFERENCES Users,
 	modcode varchar(100) NOT NULL,
 	lnum int NOT NULL,
 	bid_time timestamp with time zone,
